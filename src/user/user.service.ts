@@ -11,36 +11,34 @@ export class UserService {
   constructor(
     @InjectRepository(UserEntity)
     private readonly userRepository: Repository<UserEntity>,
-    @InjectRepository(SubscriptionEntity)
     private readonly subscriptionRepository: Repository<SubscriptionEntity>
   ) {}
 
-  async byId(id: number) {
-    if (Number.isNaN(id)) throw new NotFoundException('Пользователь не найден')
+  async findAll() {
+    return await this.userRepository.find()
+  }
+
+  async findOne(id: number) {
     const user = await this.userRepository.findOne({
-      where: {
-        id
-      },
+      where: { id },
       relations: {
         videos: true,
         subscriptions: {
-          toChanel: true
+          toChannel: true
         }
-      },
-      order: {
-        createdAt: 'DESC'
       }
     })
 
-    if (!user) throw new NotFoundException('Пользователь не найден')
+    if (!user) throw new NotFoundException('Пользователь не найден!')
 
     return user
   }
 
   async updateProfile(id: number, dto: UserDto) {
-    const user = await this.byId(id)
+    const user = await this.findOne(id)
 
-    const isSameUser = await this.userRepository.findOneBy({email: dto.email})
+    const isSameUser = await this.userRepository.findOneBy({ email: dto.email })
+
     if (isSameUser && id !== isSameUser.id) throw new BadRequestException('Email занят')
 
     if (dto.password) {
@@ -48,8 +46,8 @@ export class UserService {
       user.password = await hash(dto.password, salt)
     }
 
-    user.email = dto.email
     user.name = dto.name
+    user.email = dto.email
     user.description = dto.description
     user.avatarPath = dto.avatarPath
 
@@ -57,9 +55,8 @@ export class UserService {
   }
 
   async subscribe(id: number, channelId: number) {
-
     const data = {
-      toChanel: { id: channelId },
+      toChannel: { id: channelId },
       fromUser: { id }
     }
 
@@ -67,16 +64,12 @@ export class UserService {
 
     if (!isSubscribed) {
       const newSubscription = await this.subscriptionRepository.create(data)
-      await this.subscriptionRepository.save(newSubscription)
+      await this.subscriptionRepository.create(newSubscription)
 
       return true
     }
 
     await this.subscriptionRepository.delete(data)
     return false
-  }
-
-  async getAll() {
-    return this.userRepository.find()
   }
 }
