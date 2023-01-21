@@ -1,17 +1,31 @@
-import { IsEmail, IsString } from "class-validator";
+import {
+  IsBoolean,
+  IsEmail,
+  IsNotEmpty,
+  IsNumber,
+  IsString,
+  MinLength,
+} from 'class-validator';
 
 export class UserDto {
-  @IsString()
-  name: string
-
   @IsEmail()
-  email: string
-
-  password?: string
+  email: string;
 
   @IsString()
-  description: string
+  password?: string;
 
   @IsString()
-  avatarPath: string
+  name: string;
+
+  @IsString()
+  description: string;
+
+  @IsString()
+  avatarPath: string;
+
+  @IsBoolean()
+  isVerified: boolean;
+
+  @IsNumber()
+  subscribersCount: number;
 }

@@ -1,75 +1,98 @@
-import { BadRequestException, Injectable, NotFoundException } from "@nestjs/common";
-import { InjectRepository } from "@nestjs/typeorm";
-import { UserEntity } from "./user.entity";
-import { Repository } from "typeorm";
-import { SubscriptionEntity } from "./subscription.entity";
-import { UserDto } from "./user.dto";
-import { genSalt, hash } from "bcryptjs";
+import {
+  BadRequestException,
+  Injectable,
+  NotFoundException,
+} from '@nestjs/common';
+import { InjectRepository } from '@nestjs/typeorm';
+import { UserEntity } from './user.entity';
+import { Repository } from 'typeorm';
+import { SubscriptionEntity } from './subscription.entity';
+import { UserDto } from './user.dto';
+import { genSalt, hash } from 'bcryptjs';
 
 @Injectable()
 export class UserService {
   constructor(
     @InjectRepository(UserEntity)
     private readonly userRepository: Repository<UserEntity>,
-    private readonly subscriptionRepository: Repository<SubscriptionEntity>
+    @InjectRepository(SubscriptionEntity)
+    private readonly subscriptionRepository: Repository<SubscriptionEntity>,
   ) {}
 
-  async findAll() {
-    return await this.userRepository.find()
-  }
-
-  async findOne(id: number) {
-    const user = await this.userRepository.findOne({
-      where: { id },
+  async getAll() {
+    return await this.userRepository.find({
       relations: {
         videos: true,
         subscriptions: {
-          toChannel: true
-        }
-      }
-    })
-
-    if (!user) throw new NotFoundException('Пользователь не найден!')
-
-    return user
+          toChannel: true,
+          fromUser: true,
+        },
+      },
+    });
   }
 
+  //by-id
+  async byId(id: number) {
+    const user = await this.userRepository.findOne({
+      where: {
+        id,
+      },
+      relations: {
+        videos: true,
+        subscriptions: {
+          toChannel: true,
+        },
+      },
+      order: {
+        createdAt: 'DESC',
+      },
+    });
+    if (!user) throw new NotFoundException('Пользователь не найден!');
+    return user;
+  }
+  //
+
+  //update
   async updateProfile(id: number, dto: UserDto) {
-    const user = await this.findOne(id)
+    const user = await this.byId(id);
 
-    const isSameUser = await this.userRepository.findOneBy({ email: dto.email })
-
-    if (isSameUser && id !== isSameUser.id) throw new BadRequestException('Email занят')
-
+    const isSameUser = await this.userRepository.findOneBy({
+      email: dto.email,
+    });
+    /*    if(isSameUser && id === isSameUser.id) throw new BadRequestException(
+      'Пользователь с таким email уже существует'
+    )*/
     if (dto.password) {
-      const salt = await genSalt(10)
-      user.password = await hash(dto.password, salt)
+      const salt = await genSalt(10);
+      user.password = await hash(dto.password, salt);
     }
 
-    user.name = dto.name
-    user.email = dto.email
-    user.description = dto.description
-    user.avatarPath = dto.avatarPath
+    user.email = dto.email;
+    user.name = dto.name;
+    user.description = dto.description;
+    user.avatarPath = dto.avatarPath;
+    user.isVerified = dto.isVerified;
+    user.subscribersCount = dto.subscribersCount;
 
-    return this.userRepository.save(user)
+    return this.userRepository.save(user);
   }
 
+  //subscribe
+  async subscriptions() {
+    return this.subscriptionRepository.find({});
+  }
   async subscribe(id: number, channelId: number) {
     const data = {
       toChannel: { id: channelId },
-      fromUser: { id }
-    }
-
-    const isSubscribed = await this.subscriptionRepository.findOneBy(data)
-
+      fromUser: { id },
+    };
+    const isSubscribed = await this.subscriptionRepository.findOneBy(data);
     if (!isSubscribed) {
-      const newSubscription = await this.subscriptionRepository.create(data)
-      await this.subscriptionRepository.create(newSubscription)
-
-      return true
+      const newSubscription = await this.subscriptionRepository.create(data);
+      await this.subscriptionRepository.save(newSubscription);
+      return true;
     }
-
-    await this.subscriptionRepository.delete(data)
-    return false
+    await this.subscriptionRepository.delete(data);
+    return false;
   }
 }

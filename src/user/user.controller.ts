@@ -1,42 +1,62 @@
-import { Body, Controller, Get, HttpCode, Param, Patch, Put, UsePipes, ValidationPipe } from "@nestjs/common";
+import {
+  Body,
+  Controller,
+  Get,
+  HttpCode,
+  NotFoundException,
+  Param,
+  Patch,
+  Delete,
+  Put,
+  UsePipes,
+  ValidationPipe,
+} from '@nestjs/common';
 import { UserService } from './user.service';
-import { Auth } from "../auth/decorators/auth.decorator";
-import { CurrentUser } from "./user.decorator";
-import { UserDto } from "./user.dto";
+import { CurrentUser } from './user.decorator';
+import { Auth } from '../auth/decorators/auth.decorator';
+import { UserDto } from './user.dto';
 
 @Controller('user')
 export class UserController {
   constructor(private readonly userService: UserService) {}
 
+  @Get()
+  async getUsers() {
+    return this.userService.getAll();
+  }
+
   @Get('profile')
   @Auth()
-  findOne(@CurrentUser('id') id: number) {
-    return this.userService.findOne(id)
+  async getProfile(@CurrentUser('id') id: number) {
+    return this.userService.byId(id);
   }
 
   @Get('by-id/:id')
-  @Auth()
-  findUser(@Param('id') id: string) {
-    return this.userService.findOne(+id)
+  async getUser(@Param('id') id: string) {
+    return this.userService.byId(+id);
   }
 
   @UsePipes(new ValidationPipe())
   @HttpCode(200)
   @Put(':id')
   @Auth()
-  updateProfile(@Param('id') id: string, @Body() dto: UserDto) {
-    return this.userService.updateProfile(+id, dto)
+  async updateUser(@Param('id') id: string, @Body() dto: UserDto) {
+    return this.userService.updateProfile(+id, dto);
   }
 
+  @UsePipes(new ValidationPipe())
   @HttpCode(200)
-  @Patch('subscriber/:channelId')
+  @Patch('subscribe/:channelId')
   @Auth()
-  subscribe(@CurrentUser('id') id: number, @Param('channelId') channelId: string) {
-    return this.userService.subscribe(+id, +channelId)
+  async subscribeToChannel(
+    @CurrentUser('id') id: number,
+    @Param('channelId') channelId: string,
+  ) {
+    return this.userService.subscribe(id, +channelId);
   }
 
-  @Get()
-  findAll() {
-    return this.userService.findAll()
+  @Get('subscriptions')
+  async subscriptions() {
+    return this.userService.subscriptions();
   }
 }

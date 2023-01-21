@@ -5,33 +5,33 @@ import { SubscriptionEntity } from "./subscription.entity";
 
 @Entity('User')
 export class UserEntity extends Base {
-  @Column({ default: '' })
-  name: string
-
   @Column({ unique: true })
-  email: string
+  email: string;
 
   @Column({ select: false })
-  password: string
+  password: string;
+
+  @Column({ default: '' })
+  name: string;
 
   @Column({ default: false, name: 'is_verified' })
-  isVerified: boolean
+  isVerified: boolean;
 
   @Column({ default: 0, name: 'subscribers_count' })
-  subscribersCount?: number
+  subscribersCount?: number;
 
   @Column({ default: '', type: 'text' })
-  description: string
+  description: string;
 
   @Column({ default: '', name: 'avatar_path' })
-  avatarPath: string
+  avatarPath: string;
 
-  @OneToMany(() => VideoEntity, video => video.user)
-  videos: VideoEntity[]
+  @OneToMany(() => VideoEntity, (video) => video.user)
+  videos: VideoEntity[];
 
-  @OneToMany(() => SubscriptionEntity, subscription => subscription.fromUser)
-  subscriptions: SubscriptionEntity[]
+  @OneToMany(() => SubscriptionEntity, (sub) => sub.fromUser)
+  subscriptions: SubscriptionEntity[];
 
-  @OneToMany(() => SubscriptionEntity, subscription => subscription.toChannel)
-  subscribers: SubscriptionEntity[]
+  @OneToMany(() => SubscriptionEntity, (sub) => sub.toChannel)
+  subscribers: SubscriptionEntity[];
 }

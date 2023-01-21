@@ -6,10 +6,10 @@ import { CommentEntity } from "../comment/comment.entity";
 
 @Entity('Video')
 export class VideoEntity extends Base {
-  @Column()
+  @Column({ default: '' })
   name: string
 
-  @Column({ default: false, name: 'is_public'})
+  @Column({ default: false, name: 'is_public' })
   isPublic: boolean
 
   @Column({ default: 0 })
@@ -31,7 +31,7 @@ export class VideoEntity extends Base {
   thumbnailPath: string
 
   @ManyToOne(() => UserEntity, user => user.videos)
-  @JoinColumn({name: 'user_id'})
+  @JoinColumn({ name: 'user_id' })
   user: UserEntity
 
   @OneToMany(() => CommentEntity, comment => comment.video)
