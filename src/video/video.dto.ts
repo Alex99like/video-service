@@ -1,17 +1,17 @@
-import { IsString } from "class-validator";
+import { IsString } from 'class-validator';
 
 export class VideoDto {
   @IsString()
-  name: string
+  name: string;
 
-  isPublic?: boolean
-
-  @IsString()
-  description: string
+  isPublic: boolean;
 
   @IsString()
-  videoPath: string
+  description: string;
 
   @IsString()
-  thumbnailPath: string
+  videoPath: string;
+
+  @IsString()
+  thumbnailPath: string;
 }

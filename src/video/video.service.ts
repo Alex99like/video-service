@@ -1,33 +1,32 @@
-import { BadRequestException, Injectable, NotFoundException } from "@nestjs/common";
-import { InjectRepository } from "@nestjs/typeorm";
-import { FindOptionsWhereProperty, ILike, MoreThan, Repository } from "typeorm";
-import { UserDto } from "../user/user.dto";
-import { genSalt, hash } from "bcryptjs";
-import { VideoEntity } from "./video.entity";
-import { VideoDto } from "./video.dto";
+import { Injectable, NotFoundException } from '@nestjs/common';
+import { InjectRepository } from '@nestjs/typeorm';
+import { FindOptionsWhereProperty, Repository, ILike, MoreThan } from 'typeorm';
+import { VideoEntity } from './video.entity';
+import { VideoDto } from './video.dto';
 
 @Injectable()
 export class VideoService {
   constructor(
     @InjectRepository(VideoEntity)
-    private readonly videoRepository: Repository<VideoEntity>
+    private readonly videoRepository: Repository<VideoEntity>,
   ) {}
 
-  async byId(id: number, isPublic = false) {
-    if (Number.isNaN(id)) throw new NotFoundException('Пользователь не найден')
-
+  //by-id
+  async byId(id: number, isPublic: boolean = false) {
     const video = await this.videoRepository.findOne({
-      where: isPublic ? {
-        id,
-        isPublic: true
-      } : {
-        id
-      },
+      where: isPublic
+        ? {
+          id,
+          isPublic: true,
+        }
+        : {
+          id,
+        },
       relations: {
         user: true,
-        comments: {
-          user: true
-        }
+        comment: {
+          user: true,
+        },
       },
       select: {
         user: {
@@ -36,9 +35,9 @@ export class VideoService {
           avatarPath: true,
           isVerified: true,
           subscribersCount: true,
-          subscriptions: true
+          subscriptions: true,
         },
-        comments: {
+        comment: {
           message: true,
           id: true,
           user: {
@@ -47,108 +46,124 @@ export class VideoService {
             avatarPath: true,
             isVerified: true,
             subscribersCount: true,
-          }
-        }
-      }
-    })
-
-    if (!video) throw new NotFoundException('Видео не найдено')
-    return video
+          },
+        },
+      },
+    });
+    if (!video) throw new NotFoundException('Видео не найдено!');
+    return video;
   }
+  //
 
-  async update(id: number, dto: VideoDto) {
-    const video = await this.byId(id)
-
-
+  //update
+  async updateVideo(id: number, dto: VideoDto) {
+    const video = await this.byId(id);
     return this.videoRepository.save({
       ...video,
-      ...dto
-    })
+      ...dto,
+    });
   }
 
+  //getAll
   async getAll(searchTerm?: string) {
-    let options: FindOptionsWhereProperty<VideoEntity> = {}
+    let options: FindOptionsWhereProperty<VideoEntity> = {};
 
     if (searchTerm) {
       options = {
-        name: ILike(`${searchTerm}`)
-      }
+        name: ILike(`%${searchTerm}%`),
+      };
     }
-
     return this.videoRepository.find({
       where: {
         ...options,
+        isPublic: true,
       },
       order: {
-        createdAt: 'DESC'
+        createdAt: 'DESC',
       },
       relations: {
         user: true,
-        comments: {
-          user: true
-        }
+        comment: {
+          user: true,
+        },
       },
       select: {
         user: {
           id: true,
           name: true,
           avatarPath: true,
-          isVerified: true
-        }
-      }
-    })
+          isVerified: true,
+        },
+      },
+    });
   }
 
   async getMostPopularByViews() {
     return this.videoRepository.find({
       where: {
-        views: MoreThan(0)
+        views: MoreThan(0),
       },
       relations: {
-        user: true
+        user: true,
       },
       select: {
         user: {
           id: true,
           name: true,
           avatarPath: true,
-          isVerified: true
-        }
+          isVerified: true,
+        },
       },
       order: {
-        views: -1
-      }
-    })
+        views: -1,
+      },
+    });
   }
 
-  async create(userId: number) {
-
+  async createVideo(userId: number) {
     const defaultValue = {
       name: '',
       user: { id: userId },
       videoPath: '',
       description: '',
       thumbnailPath: '',
-    }
-
-    const newVideo = this.videoRepository.create(defaultValue)
-    const video = await this.videoRepository.save(newVideo)
-    return video.id
+    };
+    const newVideo = this.videoRepository.create(defaultValue);
+    const video = await this.videoRepository.save(newVideo);
+    return video.id;
   }
 
-  async delete(id: number) {
-    return this.videoRepository.delete({ id })
+  async deleteVideo(id: number) {
+    return this.videoRepository.delete({ id });
   }
 
   async updateCountViews(id: number) {
-    const video = await this.byId(id)
-    video.views++
-    return this.videoRepository.save(video)
+    const video = await this.byId(id);
+    video.views++;
+    return this.videoRepository.save(video);
   }
 
-  async updateReaction(id: number) {
-    const video = await this.byId(id)
-    video.likes++
-    return this.videoRepository.save(video)
+  async updateLikes(id: number) {
+    const video = await this.byId(id);
+    video.likes++;
+    return this.videoRepository.save(video);
+  }
+
+  async updateDislikes(id: number) {
+    const video = await this.byId(id);
+    video.dislikes++;
+    return this.videoRepository.save(video);
+  }
+
+  async deleteLikes(id: number) {
+    const video = await this.byId(id);
+    video.likes--;
+    return this.videoRepository.save(video);
+  }
+
+  async deleteDislikes(id: number) {
+    const video = await this.byId(id);
+    video.dislikes--;
+    return this.videoRepository.save(video);
   }
 }
